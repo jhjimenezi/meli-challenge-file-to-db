@@ -12,10 +12,13 @@ def load_config():
     chunk_size = app.config['CHUNK_SIZE']
     return input_file_path, kafka_broker, kafka_topic, chunk_size
 
-@app.route('/file', methods=['POST'])
-async def process_file():
-    print("processing file...", flush=True)
-    process_file_service = ProcessFileService()
-    print(load_config())
-    process_file_service.process_csv_file(*load_config())
-    return '',200
+@app.route('/file/<filename>', methods=['POST'])
+async def process_file(filename):
+    print(f"processing file... {filename}", flush=True)
+    try:
+        process_file_service = ProcessFileService()
+        process_file_service.process_csv_file(filename, *load_config())
+        return '',200
+    except FileNotFoundError as e:
+        print(f"File not found: {e}", flush=True)
+        return f"File not found: {e}", 404

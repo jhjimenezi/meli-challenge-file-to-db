@@ -114,7 +114,7 @@ services:
     build:
       context: read-file-app
       args:
-      - INPUT_FILE_LOCATION="/python-docker/resources/files/technical_challenge_data.csv"
+      - INPUT_FILE_LOCATION="/python-docker/resources/files/"
       - KAFKA_BROKER="kafka1:29092"
       - KAFKA_TOPIC="meli-file-items-ids"
       - CHUNK_SIZE=100
