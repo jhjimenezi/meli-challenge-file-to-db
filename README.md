@@ -64,6 +64,8 @@ La arquitectura propuesta para la solucion dada los requerimientos no funcionale
 
 1. Usar libreria pandas para la lectura del archivo, la cual habilita el feature de chunks, que permite leer el archivo por batches y asi evitar el uso de memoria innecesario y en el caso de que sea un archivo muy grande, evitar que el proceso se caiga por falta de memoria.
 
+![Project Image](/documentation/read_file_app.jpg)
+
 2. Usar docker compose para la orquestacion de los contenedores, esto permite que la aplicacion sea facilmente escalable y portable
 
 3. Usar Apache Kafka como broker de mensajes, esto permite que la aplicacion encargada de procesar los llamados a la API pueda ser escalada, partiendo del uso de las particiones, replicas y grupos de consumidores, lo cual permite que si hay un tamano considerable de datos, se puedan procesar de manera paralela y asi evitar un cuello de botella en el procesamiento de los datos, incrementando el numero de consumidores y aplicaciones que procesan los datos.
@@ -73,10 +75,14 @@ En el caso de que no sea una cantidad considerable de datos, se puede usar el mi
 
 ![Project Image](/documentation/Partitions_Consumers.png)
 
-En el caso de que sea una cantidad considerable de datos, se puede usar el mismo numero de consumidores o replicas que particiones configuradas en el topico de kafka, sera procesada la data asi:
+En el caso de que sea una cantidad considerable de datos, se puede usar el mismo numero de consumidores o replicas que particiones configuradas en el topico de kafka (Se pueden definir mas replicas de la aplicacion que particiones pero estas no recibiran mensajes), sera procesada la data asi:
 
 ![Project Image](/documentation/Partitions_Consumers2.png)
 
-4. Usar Redis como cache, esto para reducir el llamada a las APIs de MELI, ya que algunos de los datos como los currencies, las categorias y los nicknames no cambian constantemente. Esto permite que la aplicacion sea mas eficiente y rapida.
+4. Usar Redis como cache, esto para reducir el llamada a las APIs de MELI, ya que algunos de los datos como los currencies, las categorias y los nicknames no cambian constantemente. Esto permite que la aplicacion sea mas eficiente y rapida, validando que los datos esten en REDIS antes de ir a buscarlos a las APIs de MELI, lo cual es mas demorado.
+
+![Project Image](/documentation/proccess_file_app.jpg)
 
 5. Usar MySQL como base de datos, esto para almacenar los datos de manera persistente y haciendo uso del query de upsert para evitar la duplicidad de datos.
+
+
