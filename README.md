@@ -83,6 +83,8 @@ En el caso de que sea una cantidad considerable de datos, se pueden definir hast
 
 ![Project Image](/documentation/proccess_file_app.jpg)
 
+En este mismo punto también se hace uso de la librería asyncio para el manejo de concurrencia en el llamado de las APIS de MELI, permitiendo que estos se hagan al mismo tiempo y no de manera secuencial, lo cual hace que el proceso sea más eficiente.
+
 5. Usar MySQL como base de datos, esto para almacenar los datos de manera persistente y haciendo uso del query de upsert para evitar la duplicidad de datos.
 
 
