@@ -1,0 +1,159 @@
+version: '3.1'  
+services:  
+  zoo1:
+    image: confluentinc/cp-zookeeper:7.3.2
+    hostname: zoo1
+    container_name: zoo1
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_SERVERS: zoo1:2888:3888;zoo2:2888:3888;zoo3:2888:3888
+
+  zoo2:
+    image: confluentinc/cp-zookeeper:7.3.2
+    hostname: zoo2
+    container_name: zoo2
+    ports:
+      - "2182:2182"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2182
+      ZOOKEEPER_SERVER_ID: 2
+      ZOOKEEPER_SERVERS: zoo1:2888:3888;zoo2:2888:3888;zoo3:2888:3888
+
+  zoo3:
+    image: confluentinc/cp-zookeeper:7.3.2
+    hostname: zoo3
+    container_name: zoo3
+    ports:
+      - "2183:2183"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2183
+      ZOOKEEPER_SERVER_ID: 3
+      ZOOKEEPER_SERVERS: zoo1:2888:3888;zoo2:2888:3888;zoo3:2888:3888  
+        
+  kafka1:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: kafka1
+    container_name: kafka1
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+      - "9999:9999"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:19092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092,DOCKER://host.docker.internal:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,DOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181,zoo2:2182,zoo3:2183"
+      KAFKA_BROKER_ID: 1
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: ${DOCKER_HOST_IP:-127.0.0.1}
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:29092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  init-kafka:
+    image: confluentinc/cp-kafka:7.3.2
+    depends_on:
+      - kafka1
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka1:29092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka1:29092 --create --if-not-exists --topic meli-file-items-ids --replication-factor 1 --partitions 10
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka1:29092 --list
+      "
+  
+  mysql:  
+    image: mysql:latest  
+    container_name: mysql  
+    environment:  
+      MYSQL_ROOT_PASSWORD: rootpassword  
+      MYSQL_DATABASE: itemsdb  
+      MYSQL_USER: user  
+      MYSQL_PASSWORD: password  
+    volumes:  
+      - mysql-data:/var/lib/mysql
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    ports:  
+      - '3306:3306'  
+    healthcheck:
+      test: ["CMD-SHELL", 'mysqladmin ping']
+      interval: 10s
+      timeout: 2s
+      retries: 10
+
+  redis:   
+    image: redis:latest  
+    container_name: redis  
+    volumes:  
+      - redis-data:/data  
+    ports:  
+      - 6379:6379
+  
+  read_file_app:
+    image: read-file-app
+    build:
+      context: read-file-app
+      args:
+      - INPUT_FILE_LOCATION="/python-docker/resources/files/technical_challenge_data.csv"
+      - KAFKA_BROKER="kafka1:29092"
+      - KAFKA_TOPIC="meli-file-items-ids"
+      - CHUNK_SIZE=100
+    ports:
+      - "5001:5001"
+    depends_on:
+      - kafka1
+      - mysql
+      - redis
+
+  proccess_file_app:
+    image: proccess-file-app
+    build:
+      context: proccess-file-request
+      args:
+        - KAFKA_BROKER="kafka1:29092"
+        - KAFKA_TOPIC="meli-file-items-ids"
+        - KAFKA_GROUP_ID="meli-file-items-ids-group"
+        - MYSQL_HOST="mysql"
+        - MYSQL_USER="user"
+        - MYSQL_PASSWORD="password"
+        - MYSQL_DATABASE="itemsdb"
+        - REDIS_HOST="redis"
+        - REDIS_PORT=6379
+        - API_HOST="https://api.mercadolibre.com"
+    depends_on:
+      redis:
+        condition: service_started
+      kafka1:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    deploy:
+      mode: replicated
+      replicas: 10
+      
+  
+volumes:  
+  mysql-data:  
+    driver: local
+  redis-data:  
+    driver: local
