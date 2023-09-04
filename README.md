@@ -17,17 +17,17 @@ Este proyecto comprende una aplicación de la cual hace parte dos componentes lo
 2. Python 3.10
 
 ### Pasos
-Para ejecutar esta aplicación es necesario los siguientes pasos:
+Para ejecutar esta aplicación son necesarios los siguientes pasos:
 
 1. Clonar el repositorio: ``` git clone https://github.com/jhjimenezi/meli-challenge-file-to-db.git```
 2. Navegar a la carpeta raiz del proyecto y ejecutar: ```make start```
 3. Una vez los contenedores esten disponibles: ejecutar ```curl -X POST http://127.0.0.1:5001/file/{nombre_archivo} ``` - esto leera el archivo precargado en el contenedor ubicado en <a href="https://github.com/jhjimenezi/meli-challenge-file-to-db/tree/master/read-file-app/resources/files">esta ruta</a>
 
-***Para proposito de prueba se puede ejecutar el endpoint con el siguiente archivo ```http://127.0.0.1:5001/file/technical_challenge_data.csv```
+***Para propósito de prueba se puede ejecutar el endpoint con el siguiente archivo ```http://127.0.0.1:5001/file/technical_challenge_data.csv```
 
 ### Consideraciones
 
-La aplicación esta configurada para una escalabilidad de 10 contenedores, en dado caso que sean necesario, incrementar o disminuir se debe cambiar las particiones del tópico de Kafka y las réplicas en los siguientes lugares:
+La aplicación esta configurada para una escalabilidad de 10 contenedores, en dado caso que sea necesario incrementar o disminuir la cantidad de contenedores se debe cambiar las particiones del tópico de Kafka y las réplicas en los siguientes lugares:
 
 1. <a href="https://github.com/jhjimenezi/meli-challenge-file-to-db/blob/master/docker-compose.yml#L79">Particiones del topico de kafka</a>
 2. <a href="https://github.com/jhjimenezi/meli-challenge-file-to-db/blob/master/docker-compose.yml#L152">Replicas del contenedor</a>
