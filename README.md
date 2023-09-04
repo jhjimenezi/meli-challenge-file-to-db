@@ -1,6 +1,6 @@
 # MELI Challenge - Exportando datos de un archivo a la base de datos
 
-Este proyecto comprende una aplicacion que comprende dos componentes los cuales sirven para cargar un archivo csv y cargarlo en base de datos basado en la premisa de que sean grandes archivos y que se pueda escalar.
+Este proyecto comprende una aplicacion de la cual hace parte dos componentes los cuales sirven para leer un archivo csv y cargarlo en base de datos.
 
 ## Stack tecnologico
 1. Docker Compose
@@ -27,7 +27,7 @@ Para ejecutar esta aplicacion es necesario los siguientes pasos:
 
 ### Consideraciones
 
-La aplicacion esta configurada para una escalabilidad de 10 contenedores, en dado caso que sean necesarion incrementar o disminuir es necesario cambiar las particiones del topico de Kafka y las replicas en los siguientes lugares:
+La aplicacion esta configurada para una escalabilidad de 10 contenedores, en dado caso que sean necesarion incrementar o disminuir se debe cambiar las particiones del topico de Kafka y las replicas en los siguientes lugares:
 
 1. <a href="https://github.com/jhjimenezi/meli-challenge-file-to-db/blob/master/docker-compose.yml#L79">Particiones del topico de kafka</a>
 2. <a href="https://github.com/jhjimenezi/meli-challenge-file-to-db/blob/master/docker-compose.yml#L152">Replicas del contenedor</a>
@@ -38,25 +38,25 @@ Las razones de estas configuraciones seran explicada en la seccion de arquitectu
 
 ### Features faltantes
 
-Debido a disponibilidad de tiempo no fue posible desarrollar las siguientes features y desarrollar los siguientes requerimientos no funcionales:
+Debido a disponibilidad de tiempo no fue posible desarrollar las siguientes features y los siguientes requerimientos no funcionales:
 
-1. Proveer un mecanismo de colocar el archivo a procesar en un repositorio compartido donde sea permitido el acceso para el usuario final subir su archivo
+1. Proveer un mecanismo que al colocar el archivo a procesar en un repositorio compartido, en donde sea permitido el acceso para el usuario final, se pueda capturar el evento y lanzar el proceso de carga de datos.
     #### Workaround
     Para este caso se utilizo un archivo precargado en el contenedor de la aplicacion, el cual se encuentra en <a href="https://github.com/jhjimenezi/meli-challenge-file-to-db/tree/master/read-file-app/resources/files">esta ruta</a>
 
-2. Permitir que la carga de archivo sea asincrona, asi el endpoint no espera que el archivo se termine de leer y evitar asi la generacion de un timeout
+2. Permitir que la carga de archivo sea asincrona, asi el endpoint no espera que el archivo se termine de leer y evitar asi la generacion de un timeout.
 
-3. La arquitectura de aplicacion fue basada en un sistema de capas, las cuales no fueron desacopladas lo cual no permite una facil extensibilidad de la aplicacion, como agregar nuevos tipos de files o formatos o destinos de los datos. Esto se puede solucionar con el patron de diseño Strategy y Dependecy Inversion Principle.
+3. La arquitectura de aplicacion fue basada en un sistema de capas, las cuales no fueron desacopladas, esto hace que extensibilidad de la aplicacion se vea afectada, por ejemplo  agregar nuevos tipos de archivos o formatos. Esto se puede solucionar con el patron de diseño Strategy y Dependecy Inversion Principle.
 
-4. Proveer de un mecanismo de logging eficiente, en vez de usar print statements
+4. Proveer un mecanismo de logging eficiente, en vez de usar print statements.
 
-5. Uso de un linter para el codigo, asi como la mejora de nombramiento de variables y metodos
+5. Uso de un linter para el codigo, asi como la mejora de nombramiento de variables y metodos.
 
-6. Usar GraalVM para optimizar tamano de los contenedores y el tiempo de inicio de las aplicaciones asi como el uso innecesario de recursos
+6. Usar GraalVM para optimizar tamano de los contenedores y el tiempo de inicio de las aplicaciones, asi como el uso innecesario de recursos fisicos.
 
 ### Arquitectura propuesta
 
-La arquitectura propuesta para la solucion dada los requerimientos no funcionales de escalabilidad y desempeno fue basada en Apache Kafka, Redis, MySQL y el uso contenedores de Docker y Docker Compose.
+La arquitectura propuesta para la solucion dada los requerimientos no funcionales de escalabilidad y desempeno fue basada en Apache Kafka, Redis, MySQL y el uso de contenedores con Docker y Docker Compose.
 
 ![Project Image](/documentation/General_Schema.jpg)
 
@@ -68,10 +68,10 @@ La arquitectura propuesta para la solucion dada los requerimientos no funcionale
 
 2. Usar docker compose para la orquestacion de los contenedores, esto permite que la aplicacion sea facilmente escalable y portable
 
-3. Usar Apache Kafka como broker de mensajes, esto permite que la aplicacion encargada de procesar los llamados a la API pueda ser escalada, partiendo del uso de las particiones, replicas y grupos de consumidores, lo cual permite que si hay un tamano considerable de datos, se puedan procesar de manera paralela y asi evitar un cuello de botella en el procesamiento de los datos, incrementando el numero de consumidores y aplicaciones que procesan los datos.
+3. Usar Apache Kafka como broker de mensajes, esto permite que la aplicacion encargada de procesar los llamados a la API pueda ser escalada, partiendo del uso de las particiones, replicas y grupos de consumidores, lo cual habilita que si hay un tamano considerable de datos, se puedan procesar de manera paralela y asi evitar un cuello de botella en el procesamiento de los datos, incrementando el numero de consumidores y aplicaciones que procesan los mismos.
 
 ##### Particiones Vs Consumidores
-En el caso de que no sea una cantidad considerable de datos, se puede usar el mismo un numero menor de consumidores o replicas que particiones configuradas en el topico de kafka, sera procesada la data asi:
+En el caso de que no sea una cantidad considerable de datos, se puede usar un numero menor de consumidores o replicas que particiones configuradas en el topico de kafka, sera procesada los datos asi:
 
 ![Project Image](/documentation/Partitions_Consumers.png)
 
